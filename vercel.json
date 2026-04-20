@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "public": true,
+  "name": "smart-stadium-ai",
+  "builds": [
+    {
+      "src": "dashboard.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/dashboard.html"
+    }
+  ]
+}
