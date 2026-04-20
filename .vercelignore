@@ -1,0 +1,6 @@
+backend/
+frontend/
+*.py
+__pycache__/
+.env
+.runtime/

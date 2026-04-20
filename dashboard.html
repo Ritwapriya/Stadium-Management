@@ -74,51 +74,96 @@
     </div>
 
     <script>
-        const zones = ['North Gate', 'South Gate', 'East Stand', 'West Stand', 'Food Court'];
-        const stalls = ['Food Stall A', 'Food Stall B', 'Food Stall C', 'Merchandise', 'Restroom North'];
-        const phases = ['PRE', 'LIVE', 'HALFTIME', 'POST'];
+        const API_BASE = window.location.origin;
 
-        function update() {
-            // Update crowd
-            let crowdHTML = '';
-            zones.forEach(zone => {
-                const pct = Math.floor(Math.random() * 60) + 30;
-                const color = pct > 80 ? 'red' : pct > 50 ? 'yellow' : 'green';
-                crowdHTML += `<div class="metric"><span>${zone}</span><span class="metric-value ${color}">${pct}%</span></div>`;
-            });
-            document.getElementById('crowd').innerHTML = crowdHTML;
+        async function update() {
+            try {
+                const response = await fetch(`${API_BASE}/context/`);
+                if (!response.ok) throw new Error('Backend not ready');
+                const data = await response.json();
+                
+                // Update Phase
+                const phase = data.match_phase || 'PRE';
+                const phaseEl = document.getElementById('phase');
+                phaseEl.textContent = phase;
+                phaseEl.className = `phase phase-${phase}`;
+                phaseEl.style.background = phase === 'LIVE' ? '#ff4444' : phase === 'PRE' ? '#ffcc00' : phase === 'HALFTIME' ? '#00ccff' : '#888';
 
-            // Update queues
-            let queueHTML = '';
-            stalls.forEach(stall => {
-                const wait = Math.floor(Math.random() * 15) + 2;
-                const color = wait > 10 ? 'red' : wait > 5 ? 'yellow' : 'green';
-                queueHTML += `<div class="metric"><span>${stall}</span><span class="metric-value ${color}">${wait} min</span></div>`;
-            });
-            document.getElementById('queues').innerHTML = queueHTML;
+                // Update Crowd
+                const crowdState = data.crowd_state || {};
+                let crowdHTML = '';
+                if (Object.keys(crowdState).length === 0) {
+                    crowdHTML = '<p style="text-align:center;opacity:0.5;padding:20px;">Waiting for sensors...</p>';
+                } else {
+                    Object.entries(crowdState).forEach(([zone, density]) => {
+                        const pct = Math.round((density || 0) * 100);
+                        const color = pct > 80 ? 'red' : pct > 50 ? 'yellow' : 'green';
+                        crowdHTML += `<div class="metric"><span>Zone ${zone}</span><span class="metric-value ${color}">${pct}%</span></div>`;
+                    });
+                }
+                document.getElementById('crowd').innerHTML = crowdHTML;
 
-            // Update phase
-            const phase = phases[Math.floor(Math.random() * phases.length)];
-            const phaseEl = document.getElementById('phase');
-            phaseEl.textContent = phase;
-            phaseEl.className = `phase phase-${phase}`;
-            phaseEl.style.background = phase === 'LIVE' ? '#ff4444' : phase === 'PRE' ? '#ffcc00' : phase === 'HALFTIME' ? '#00ccff' : '#888';
+                // Update Queues
+                const queueState = data.queue_state || {};
+                let queueHTML = '';
+                if (Object.keys(queueState).length === 0) {
+                    queueHTML = '<p style="text-align:center;opacity:0.5;padding:20px;">Waiting for stalls...</p>';
+                } else {
+                    Object.entries(queueState).forEach(([stall, waitTime]) => {
+                        const mins = Math.round(waitTime || 0);
+                        const color = mins > 10 ? 'red' : mins > 5 ? 'yellow' : 'green';
+                        queueHTML += `<div class="metric"><span>${stall}</span><span class="metric-value ${color}">${mins} min</span></div>`;
+                    });
+                }
+                document.getElementById('queues').innerHTML = queueHTML;
+
+                // Update Recommendation
+                const recs = data.recommendations || [];
+                const recDiv = document.querySelector('.recommendation');
+                if (recs.length > 0) {
+                    const rec = recs[0];
+                    const conf = Math.round((rec.confidence || 0) * 100);
+                    recDiv.style.display = 'block';
+                    recDiv.innerHTML = `
+                        <h3>${rec.action}</h3>
+                        <p>${rec.reason || ''}</p>
+                        <p>Confidence: ${conf}%</p>
+                        <div class="bar"><div class="bar-fill green" style="width:${conf}%;background:#00ff88"></div></div>
+                    `;
+                } else {
+                    recDiv.innerHTML = '<p style="opacity:0.7">Collecting Intelligence...</p>';
+                }
+
+            } catch (e) {
+                console.error("Connection Error:", e);
+                // Fallback to error message if disconnected
+                if (!document.getElementById('crowd').innerHTML.includes('Error')) {
+                   document.getElementById('crowd').innerHTML = '<p style="color:red;padding:10px;">Backend Disconnected</p>';
+                }
+            }
         }
 
-        function answer() {
-            const q = document.getElementById('question').value.toLowerCase();
-            const answers = [
-                "The East Stand is currently at 89% capacity. I recommend the West Stand instead.",
-                "Food Stall C has the shortest wait time at 3 minutes.",
-                "Current match is LIVE. Next break is at halftime.",
-                "South Gate is less crowded. Use it for faster entry.",
-                "The stadium has 5 zones with varying crowd levels."
-            ];
-            document.getElementById('answer').textContent = answers[Math.floor(Math.random() * answers.length)];
+        async function answer() {
+            const query = document.getElementById('question').value;
+            if (!query) return;
+            const ansDiv = document.getElementById('answer');
+            ansDiv.textContent = "AI is thinking...";
+            
+            try {
+                const res = await fetch(`${API_BASE}/chat/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                const data = await res.json();
+                ansDiv.textContent = data.response || "No response.";
+            } catch (e) {
+                ansDiv.textContent = "Chat error. Is the backend running?";
+            }
         }
 
         update();
-        setInterval(update, 3000);
+        setInterval(update, 2000);
     </script>
 </body>
 </html>

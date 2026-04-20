@@ -14,6 +14,7 @@ from backend.agents.recommendation_agent import RecommendationAgent
 from backend.agents.planner_agent import PlannerAgent
 from backend.agents.chat_agent import ChatAgent
 
+from fastapi.staticfiles import StaticFiles
 from backend.routers import context, recommend, chat, ws
 
 logging.basicConfig(level=logging.INFO)
@@ -67,6 +68,9 @@ app.include_router(context.router, prefix="/context", tags=["Context"])
 app.include_router(recommend.router, prefix="/recommend", tags=["Recommend"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])
+
+# Serve static files (HTML)
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
