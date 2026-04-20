@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Stadium AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; color: white; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; border: 1px solid rgba(255,255,255,0.2); }
+        .card h2 { margin-bottom: 15px; font-size: 1.3em; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px; }
+        .status { display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; animation: pulse 2s infinite; }
+        .status-dot.green { background: #00ff88; }
+        .status-dot.yellow { background: #ffcc00; }
+        .status-dot.red { background: #ff4444; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .metric { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        .metric-value { font-weight: bold; font-size: 1.2em; }
+        .chat-container { height: 300px; display: flex; flex-direction: column; }
+        .chat-messages { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .chat-input { display: flex; gap: 10px; }
+        .chat-input input { flex: 1; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.2); color: white; }
+        .chat-input button { padding: 10px 20px; border: none; border-radius: 8px; background: #00ff88; color: #1e3c72; font-weight: bold; cursor: pointer; }
+        .message { margin: 5px 0; padding: 8px 12px; border-radius: 8px; max-width: 80%; }
+        .message.user { background: rgba(0,255,136,0.3); margin-left: auto; text-align: right; }
+        .message.bot { background: rgba(255,255,255,0.2); }
+        .recommendation { background: rgba(0,255,136,0.2); padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #00ff88; }
+        .phase-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .phase-PRE { background: #ffcc00; color: #000; }
+        .phase-LIVE { background: #ff4444; color: white; }
+        .phase-HALFTIME { background: #00ccff; color: #000; }
+        .phase-POST { background: #888; color: white; }
+        .loading { text-align: center; padding: 20px; }
+        .error { background: rgba(255,68,68,0.3); padding: 15px; border-radius: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏟️ Smart Stadium AI</h1>
+        <p>Real-time Multi-Agent Experience Optimizer</p>
+        <div style="margin-top: 15px;">
+            Match Phase: <span id="match-phase" class="phase-badge phase-PRE">PRE</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>👥 Crowd Density</h2>
+            <div id="crowd-data">
+                <div class="loading">Loading crowd data...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⏱️ Queue Times</h2>
+            <div id="queue-data">
+                <div class="loading">Loading queue data...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💡 Recommendations</h2>
+            <div id="recommendations">
+                <div class="loading">Loading recommendations...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🤖 AI Chat</h2>
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages">
+                    <div class="message bot">Hi! Ask me anything about the stadium.</div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chat-input" placeholder="Ask about crowd, food, exits..." onkeypress="if(event.key==='Enter')sendMessage()">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        async function fetchData() {
+            try {
+                const response = await fetch(`${API_BASE}/context/`);
+                if (!response.ok) throw new Error('API not ready');
+                const data = await response.json();
+                updateUI(data);
+            } catch (e) {
+                document.getElementById('crowd-data').innerHTML = '<div class="error">Backend not connected. Make sure server is running on port 8000.</div>';
+            }
+        }
+
+        function updateUI(data) {
+            // Update match phase
+            const phase = data.match_phase || 'PRE';
+            const phaseEl = document.getElementById('match-phase');
+            phaseEl.textContent = phase;
+            phaseEl.className = `phase-badge phase-${phase}`;
+
+            // Update crowd data
+            const crowdState = data.crowd_state || {};
+            let crowdHTML = '';
+            if (Object.keys(crowdState).length === 0) {
+                crowdHTML = '<div class="status"><span class="status-dot green"></span> Waiting for sensor data...</div>';
+            } else {
+                Object.entries(crowdState).forEach(([zone, density]) => {
+                    const pct = Math.round((density || 0) * 100);
+                    const color = pct > 80 ? 'red' : pct > 50 ? 'yellow' : 'green';
+                    crowdHTML += `
+                        <div class="metric">
+                            <span>Zone ${zone}</span>
+                            <span class="metric-value" style="color: ${color === 'red' ? '#ff4444' : color === 'yellow' ? '#ffcc00' : '#00ff88'}">${pct}% full</span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('crowd-data').innerHTML = crowdHTML;
+
+            // Update queue data
+            const queueState = data.queue_state || {};
+            let queueHTML = '';
+            if (Object.keys(queueState).length === 0) {
+                queueHTML = '<div class="status"><span class="status-dot green"></span> Waiting for queue data...</div>';
+            } else {
+                Object.entries(queueState).forEach(([stall, waitTime]) => {
+                    const mins = Math.round(waitTime || 0);
+                    const color = mins > 10 ? 'red' : mins > 5 ? 'yellow' : 'green';
+                    queueHTML += `
+                        <div class="metric">
+                            <span>${stall}</span>
+                            <span class="metric-value" style="color: ${color === 'red' ? '#ff4444' : color === 'yellow' ? '#ffcc00' : '#00ff88'}">${mins} min</span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('queue-data').innerHTML = queueHTML;
+
+            // Update recommendations
+            const recs = data.recommendations || [];
+            let recsHTML = '';
+            if (recs.length === 0) {
+                recsHTML = '<div class="status"><span class="status-dot green"></span> No recommendations yet</div>';
+            } else {
+                recs.forEach(rec => {
+                    recsHTML += `
+                        <div class="recommendation">
+                            <strong>${rec.action || 'Recommendation'}</strong>
+                            <div style="font-size: 0.9em; opacity: 0.8; margin-top: 5px">Confidence: ${Math.round((rec.confidence || 0) * 100)}%</div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('recommendations').innerHTML = recsHTML;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatContainer = document.getElementById('chat-messages');
+            chatContainer.innerHTML += `<div class="message user">${message}</div>`;
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_BASE}/chat/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: message })
+                });
+                const data = await response.json();
+                chatContainer.innerHTML += `<div class="message bot">${data.response || 'Sorry, I could not process that.'}</div>`;
+            } catch (e) {
+                chatContainer.innerHTML += `<div class="message bot">Sorry, chat is temporarily unavailable.</div>`;
+            }
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Fetch data every 2 seconds
+        fetchData();
+        setInterval(fetchData, 2000);
+    </script>
+</body>
+</html>

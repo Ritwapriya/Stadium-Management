@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+redis[asyncio]
+motor
+pydantic
+pydantic-settings
+google-generativeai
+websockets
+python-dotenv

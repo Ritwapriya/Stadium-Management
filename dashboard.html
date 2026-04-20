@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Stadium AI Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #1a1a2e, #16213e); min-height: 100vh; color: white; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; border: 1px solid rgba(255,255,255,0.2); }
+        .card h2 { margin-bottom: 15px; font-size: 1.3em; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px; }
+        .metric { display: flex; justify-content: space-between; align-items: center; padding: 12px; margin: 8px 0; background: rgba(0,0,0,0.3); border-radius: 8px; }
+        .metric-value { font-weight: bold; font-size: 1.2em; }
+        .green { color: #00ff88; }
+        .yellow { color: #ffcc00; }
+        .red { color: #ff4444; }
+        .phase { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+        .phase-LIVE { background: #ff4444; }
+        .recommendation { background: rgba(0,255,136,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88; margin-top: 15px; }
+        .bar { height: 25px; background: rgba(0,0,0,0.3); border-radius: 5px; margin: 5px 0; position: relative; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 5px; transition: width 0.5s; }
+        input, button { padding: 10px; border: none; border-radius: 5px; margin-top: 10px; }
+        input { width: 70%; background: rgba(255,255,255,0.2); color: white; }
+        button { width: 28%; background: #00ff88; color: #1a1a2e; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏟️ Smart Stadium AI Dashboard</h1>
+        <p>Real-time Multi-Agent Experience Optimizer</p>
+        <div>Match Phase: <span id="phase" class="phase phase-LIVE">LIVE</span></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>👥 Crowd Density Hotspots</h2>
+            <div id="crowd">
+                <div class="metric"><span>North Gate</span><span class="metric-value green">45%</span></div>
+                <div class="metric"><span>South Gate</span><span class="metric-value yellow">67%</span></div>
+                <div class="metric"><span>East Stand</span><span class="metric-value red">89%</span></div>
+                <div class="metric"><span>West Stand</span><span class="metric-value yellow">72%</span></div>
+                <div class="metric"><span>Food Court</span><span class="metric-value red">94%</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⏱️ Live Queue Wait Times</h2>
+            <div id="queues">
+                <div class="metric"><span>Food Stall A</span><span class="metric-value yellow">8 min</span></div>
+                <div class="metric"><span>Food Stall B</span><span class="metric-value red">15 min</span></div>
+                <div class="metric"><span>Food Stall C</span><span class="metric-value green">3 min</span></div>
+                <div class="metric"><span>Merchandise</span><span class="metric-value green">5 min</span></div>
+                <div class="metric"><span>Restroom North</span><span class="metric-value yellow">12 min</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Intelligence & Recommendations</h2>
+            <div class="recommendation">
+                <h3>Go to West Stand - Less crowded!</h3>
+                <p>East Stand is at 89% capacity</p>
+                <p>Confidence: 85%</p>
+                <div class="bar"><div class="bar-fill green" style="width:85%;background:#00ff88"></div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💬 Ask Smart Stadium AI</h2>
+            <input type="text" id="question" placeholder="Ask about the stadium...">
+            <button onclick="answer()">Ask</button>
+            <div id="answer" style="margin-top:15px;padding:10px;background:rgba(0,0,0,0.3);border-radius:5px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const zones = ['North Gate', 'South Gate', 'East Stand', 'West Stand', 'Food Court'];
+        const stalls = ['Food Stall A', 'Food Stall B', 'Food Stall C', 'Merchandise', 'Restroom North'];
+        const phases = ['PRE', 'LIVE', 'HALFTIME', 'POST'];
+
+        function update() {
+            // Update crowd
+            let crowdHTML = '';
+            zones.forEach(zone => {
+                const pct = Math.floor(Math.random() * 60) + 30;
+                const color = pct > 80 ? 'red' : pct > 50 ? 'yellow' : 'green';
+                crowdHTML += `<div class="metric"><span>${zone}</span><span class="metric-value ${color}">${pct}%</span></div>`;
+            });
+            document.getElementById('crowd').innerHTML = crowdHTML;
+
+            // Update queues
+            let queueHTML = '';
+            stalls.forEach(stall => {
+                const wait = Math.floor(Math.random() * 15) + 2;
+                const color = wait > 10 ? 'red' : wait > 5 ? 'yellow' : 'green';
+                queueHTML += `<div class="metric"><span>${stall}</span><span class="metric-value ${color}">${wait} min</span></div>`;
+            });
+            document.getElementById('queues').innerHTML = queueHTML;
+
+            // Update phase
+            const phase = phases[Math.floor(Math.random() * phases.length)];
+            const phaseEl = document.getElementById('phase');
+            phaseEl.textContent = phase;
+            phaseEl.className = `phase phase-${phase}`;
+            phaseEl.style.background = phase === 'LIVE' ? '#ff4444' : phase === 'PRE' ? '#ffcc00' : phase === 'HALFTIME' ? '#00ccff' : '#888';
+        }
+
+        function answer() {
+            const q = document.getElementById('question').value.toLowerCase();
+            const answers = [
+                "The East Stand is currently at 89% capacity. I recommend the West Stand instead.",
+                "Food Stall C has the shortest wait time at 3 minutes.",
+                "Current match is LIVE. Next break is at halftime.",
+                "South Gate is less crowded. Use it for faster entry.",
+                "The stadium has 5 zones with varying crowd levels."
+            ];
+            document.getElementById('answer').textContent = answers[Math.floor(Math.random() * answers.length)];
+        }
+
+        update();
+        setInterval(update, 3000);
+    </script>
+</body>
+</html>
