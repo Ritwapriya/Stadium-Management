@@ -1,0 +1,17 @@
+backend/
+frontend/
+*.py
+__pycache__/
+*.pyc
+.env
+.runtime/
+redis/
+*.ps1
+*.md
+data_injector.py
+frontend_standalone.py
+simple_frontend.html
+setup_and_run.ps1
+run.ps1
+run_without_docker.ps1
+vercel.json
