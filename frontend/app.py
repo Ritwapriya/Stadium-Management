@@ -9,9 +9,11 @@ import threading
 from queue import Queue
 import time
 
+import os
+
 # Configuration
-API_URL = "http://localhost:8000"
-WS_URL = "ws://localhost:8000/ws/live"
+API_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+WS_URL = os.getenv("WS_URL", API_URL.replace("http", "ws") + "/ws/live")
 
 st.set_page_config(page_title="Smart Stadium AI", layout="wide", page_icon="🏟️")
 
